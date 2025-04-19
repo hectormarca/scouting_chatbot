@@ -29,10 +29,10 @@ def boxplot(df, jugador, variable, jugador_col="player"):
     x=df[variable],
     y=[0]*len(df),
     orientation='h',
-    boxpoints=False,     # ❌ No muestra puntos
+    boxpoints=False,     # No muestra puntos
     fillcolor='rgba(255, 100, 100, 0.2)',
     line=dict(color='rgba(255,100,100,0.8)'),
-    hoverinfo='skip',    # ❌ Desactiva hover
+    hoverinfo='skip',    # Desactiva hover
     showlegend=False
 ))
 
@@ -336,19 +336,70 @@ def comparative_report(df, variables, player, jugador_col='player'):
     return dashboard
 
 
+def barchart_eventing(df, event,jornada_col='match_day', color='crimson'):
+    """
+    Genera un gráfico de barras con la distribución de eventos por jornada.
 
-data = pd.read_csv("Data/aggregated_data.csv", sep=";", encoding = "UTF-8")
-data = data[(data['minutes']>1000) & (data['position']!='Goalkeeper')]
-vars = ['Pases', 'Shot_Assist', 'Assist', 'Centros_Area',
-       'Porc_Pase', 'Regates_Int', 'Regates_Comp', 'Recuperaciones',
-       'Despejes', 'Perdidas', 'Errores', 'Tiros', 'xG_per_90', 'Goles']
+    Parámetros:
+        df (pd.DataFrame): dataframe ya filtrado al evento y jugadores deseados deseado
+        event: Nombre del evento que se va a mostrar
+        jornada_col (str): nombre de la columna que indica la jornada
+        color (str): color base para barras y puntos
+    """
+    # Agrupar por jornada
+    counts = df[jornada_col].value_counts().sort_index()
+    jornadas = counts.index.tolist()
+    valores = counts.values.tolist()
 
-data_scaled = data.copy()
-data_scaled = data_scaled[vars + ['player','position']]
+    hovertemplate = (
+        "Jornada: %{x}<br>"
+        f"{event}:"+" %{y}<extra></extra>"
+    )
 
-min_vals = data_scaled[vars].min()
-max_vals = data_scaled[vars].max()
-data_scaled[vars] = (data_scaled[vars] - min_vals) / (max_vals - min_vals)
+    bar = go.Bar(
+        x=jornadas,
+        y=valores,
+        marker_color=color,
+        opacity=0.3,
+        width=0.6,
+        showlegend=False,
+        hovertemplate=hovertemplate
+    )
 
-fig = comparative_report(data, ['xG_per_90', 'Porc_Pase', 'Regates_Int', 'Perdidas'],'Leroy Sané')
+    dots = go.Scatter(
+        x=jornadas,
+        y=valores,
+        mode='markers',
+        marker=dict(color=color, size=6),
+        showlegend=False,
+        hovertemplate=hovertemplate
+    )
+
+    fig = go.Figure(data=[bar, dots])
+
+    # Estética del gráfico
+    fig.update_layout(
+        template='simple_white',
+        margin=dict(l=40, r=20, t=40, b=40),
+        xaxis_title='Jornada',
+        yaxis_title='',
+        xaxis=dict(tickmode='linear', tick0=1, dtick=1, range=[0.5, max(jornadas)+0.5]),
+        yaxis=dict(range=[0, max(valores) + 1]),
+        height=300,
+        width=600,
+        title=dict(
+            text=f"{event} por jornada",
+            x=0.5,
+            font=dict(size=16, color=color)
+        )
+    )
+
+    return fig
+
+
+data = pd.read_csv("Data/shots.csv", sep=";", encoding = "UTF-8")
+data = data[data['player']=='Robert Lewandowski']
+print(data.head())
+
+fig = barchart_eventing(data, 'Shots')
 fig.show()
