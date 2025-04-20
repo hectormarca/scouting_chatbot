@@ -201,10 +201,27 @@ def indicator(variable, value):
             value=value,  # tu percentil como valor
             number={
                 "suffix": "%",
-                "font": {"size": 28, "color": "crimson"}
+                "font": {"size": 28, "color": "crimson" ,"family":"Montserrat, sans-serif"}
             },
             title={
                 "text": f"<span style='font-size:14px;color:gray'><b>Perc. {variable}</b></span>",
+            },
+            domain={"x": [0, 1], "y": [0, 1]}
+            
+        )
+    
+    return fig
+
+def indicator_total(value):
+
+    fig = go.Indicator(
+            mode="number",
+            value=value,  # tu percentil como valor
+            number={
+                "font": {"size": 28, "color": "crimson", "family":"Montserrat, sans-serif"}
+            },
+            title={
+                "text": f"<span style='font-size:14px;color:gray'><b>Total temporada</b></span>",
             },
             domain={"x": [0, 1], "y": [0, 1]}
             
@@ -295,10 +312,10 @@ def comparative_report(df, variables, player, jugador_col='player'):
         showlegend=True,
         paper_bgcolor='rgba(240, 248, 255, 0.6)',  # fondo pastel claro
         plot_bgcolor='rgba(255, 255, 255, 0.0)',
-        font=dict(family="Arial", color="black"),
+        font=dict(family="Montserrat, sans-serif", color="black"),
         title=dict(
             text=f"Informe de Rendimiento de {player}. Comparación con el resto de jugadores",
-            font=dict(size=24, color="crimson"),
+            font=dict(size=24, color="crimson", family="Montserrat, sans-serif"),
             x=0.5,
             xanchor='center'
         ),
@@ -362,7 +379,7 @@ def barchart_eventing(df, event,jornada_col='match_day', color='crimson'):
         y=valores,
         marker_color=color,
         opacity=0.3,
-        width=0.6,
+        width=0.4,
         showlegend=False,
         hovertemplate=hovertemplate
     )
@@ -371,7 +388,7 @@ def barchart_eventing(df, event,jornada_col='match_day', color='crimson'):
         x=jornadas,
         y=valores,
         mode='markers',
-        marker=dict(color=color, size=6),
+        marker=dict(color=color, size=7),
         showlegend=False,
         hovertemplate=hovertemplate
     )
@@ -417,34 +434,6 @@ def draw_eventing_data(df, x_col='x', y_col='y', color_col=None):
     # Dimensiones del campo
     field_length = 120
     field_width = 80
-
-    # Límites del campo (rectángulo exterior)
-    fig.add_shape(type="rect", x0=0, y0=0, x1=field_width, y1=field_length, line=dict(color="black"))
-
-    # Línea media
-    fig.add_shape(type="line", x0=0, y0=field_length/2, x1=field_width, y1=field_length/2, line=dict(color="black"))
-
-    # Círculo central
-    fig.add_shape(type="circle",
-                  x0=field_width/2 - 10, y0=field_length/2 - 10,
-                  x1=field_width/2 + 10, y1=field_length/2 + 10,
-                  line=dict(color="black"))
-
-    # Áreas (izquierda y derecha)
-    for y_start in [0, field_length - 18]:
-        fig.add_shape(type="rect",
-                      x0=18, y0=y_start,
-                      x1=field_width - 18, y1=y_start + 18,
-                      line=dict(color="black"))
-
-    # Arcos del área
-    fig.add_shape(type="path",
-                  path=f'M {field_width/2 - 7},{18} A 7,7 0 0,1 {field_width/2 + 7},{18}',
-                  line=dict(color="black"))
-    fig.add_shape(type="path",
-                  path=f'M {field_width/2 - 7},{field_length - 18} A 7,7 0 0,0 {field_width/2 + 7},{field_length - 18}',
-                  line=dict(color="black"))
-
     # Graficar los eventos
     if color_col:
         # Si la variable es categórica
@@ -470,19 +459,28 @@ def draw_eventing_data(df, x_col='x', y_col='y', color_col=None):
             name='Eventos'
         ))
 
-    # Ajustar layout para orientación vertical
-    fig.update_layout(
-        yaxis=dict(scaleanchor="x", scaleratio=1, range=[0, field_length]),
-        xaxis=dict(range=[0, field_width]),
-        height=700,
-        width=500,
-        plot_bgcolor='white',
-        showlegend=True
-    )
 
     return fig
 
+def filter_event_data(df, filtros):
 
+    for col, (val, op) in filtros.items():
+            if op == '==':
+                df = df[df[col] == val]
+            elif op == '!=':
+                df = df[df[col] != val]
+            elif op == '>':
+                df = df[df[col] > val]
+            elif op == '>=':
+                df = df[df[col] >= val]
+            elif op == '<':
+                df = df[df[col] < val]
+            elif op == '<=':
+                df = df[df[col] <= val]
+            else:
+                raise ValueError(f"Operador no soportado: {op}")
+    return df
+  
 def individual_report(df, player, filtro_config, columna_evento, columna_color):
     """
     Genera un dashboard de eventos individuales.
@@ -515,6 +513,7 @@ def individual_report(df, player, filtro_config, columna_evento, columna_color):
     [{'type': 'indicator'}, {'type': 'xy'}, None]
 ]
 
+    titulos = [f"<b style='color:crimson; font-size:15px'>Progresión de {" ".join([f"{v}" for k, (v, op) in config.items()])} de la temporada</b>" for config in filtro_config]
     dashboard = make_subplots(
         rows=5, cols=3,
         column_widths=[0.05, 0.45, 0.5],
@@ -522,40 +521,24 @@ def individual_report(df, player, filtro_config, columna_evento, columna_color):
         specs=specs,
         horizontal_spacing=0.04,
         vertical_spacing=0.06,
+        column_titles = ["", "", f"<b style='color:crimson; font-size:19px'>Distribución de {columna_evento[1]} de la temporada</b>"],
+        subplot_titles = ["", titulos[0], "",
+                          "", titulos[1],
+                          "", titulos[2], 
+                          "", titulos[3],
+                          "", titulos[4]]
     )
 
     for i, config in enumerate(filtro_config):
-        filtros = config.get("filtros", {})
 
-        df_filtrado = df.copy()
-        for col, (val, op) in filtros.items():
-            if op == '==':
-                df_filtrado = df_filtrado[df_filtrado[col] == val]
-            elif op == '!=':
-                df_filtrado = df_filtrado[df_filtrado[col] != val]
-            elif op == '>':
-                df_filtrado = df_filtrado[df_filtrado[col] > val]
-            elif op == '>=':
-                df_filtrado = df_filtrado[df_filtrado[col] >= val]
-            elif op == '<':
-                df_filtrado = df_filtrado[df_filtrado[col] < val]
-            elif op == '<=':
-                df_filtrado = df_filtrado[df_filtrado[col] <= val]
-            else:
-                raise ValueError(f"Operador no soportado: {op}")
-        print(df_filtrado.head())
+  
+        df_filtrado = filter_event_data(df, config)
+
         total_eventos = len(df_filtrado)
-        nombre_evento = " ".join([f"{k} {op} {v}" for k, (v, op) in filtros.items()])
 
-        # Indicador de cantidad total
-        indicador = go.Indicator(
-            mode="number",
-            value=total_eventos,
-            number={"font": {"size": 24, "color": "crimson"}},
-            title={"text": f"<span style='font-size:14px;color:gray'><b>{nombre_evento}</b></span>"},
-            domain={"x": [0, 1], "y": [0, 1]}
-        )
-        dashboard.add_trace(indicador, row=i + 1, col=1)
+        nombre_evento = " ".join([f"{v}" for k, (v, op) in config.items()])
+
+        dashboard.add_trace(indicator_total(total_eventos), row=i + 1, col=1)
 
         # Barchart
         bar = barchart_eventing(df_filtrado, nombre_evento)
@@ -568,55 +551,40 @@ def individual_report(df, player, filtro_config, columna_evento, columna_color):
             df_eventing = df[df[columna_evento_col] == columna_evento_val]
             campo = draw_eventing_data(df_eventing, color_col=columna_color)
             campo.update_layout(
-                xaxis=dict(range=[0, 80], showgrid=False),
-                yaxis=dict(range=[0, 120], showgrid=False)
+                xaxis=dict(range=[-5, 85], showgrid=False),
+                yaxis=dict(range=[-5, 125], showgrid=False)
             )
             for trace in campo.data:
                 dashboard.add_trace(trace, row=1, col=3)
-            
-            # Dimensiones del campo
-            field_length = 120
-            field_width = 80
-
-            # Límites del campo (rectángulo exterior)
-            dashboard.add_shape(type="rect", x0=0, y0=0, x1=field_width, y1=field_length, line=dict(color="black"), xref='x2', yref='y2', fillcolor='rgba(0,0,0,0)')
-
-            # Línea media
-            dashboard.add_shape(type="line", x0=0, y0=field_length/2, x1=field_width, y1=field_length/2, line=dict(color="black"), xref='x2', yref='y2',fillcolor='rgba(0,0,0,0)')
-
-            # Círculo central
-            dashboard.add_shape(type="circle",
-                        x0=field_width/2 - 10, y0=field_length/2 - 10,
-                        x1=field_width/2 + 10, y1=field_length/2 + 10,
-                        line=dict(color="black"), xref='x2', yref='y2',fillcolor='rgba(0,0,0,0)')
-
-            # Áreas (izquierda y derecha)
-            for y_start in [0, field_length - 18]:
-                dashboard.add_shape(type="rect",
-                            x0=18, y0=y_start,
-                            x1=field_width - 18, y1=y_start + 18,
-                            line=dict(color="black"), xref='x2', yref='y2',fillcolor='rgba(0,0,0,0)')
-
-            # Arcos del área
-            dashboard.add_shape(type="path",
-                        path=f'M {field_width/2 - 7},{18} A 7,7 0 0,1 {field_width/2 + 7},{18}',
-                        line=dict(color="black"), xref='x2', yref='y2',fillcolor='rgba(0,0,0,0)')
-            dashboard.add_shape(type="path",
-                        path=f'M {field_width/2 - 7},{field_length - 18} A 7,7 0 0,0 {field_width/2 + 7},{field_length - 18}',
-                        line=dict(color="black"), xref='x2', yref='y2',fillcolor='rgba(0,0,0,0)')
     
-    dashboard.update_xaxes(range=[0, 80], row=1, col=3)
-    dashboard.update_yaxes(range=[0, 120], row=1, col=3)
-
+    dashboard.add_layout_image(
+    dict(
+        source="https://raw.githubusercontent.com/hectormarca/scouting_chatbot/refs/heads/main/Code/Plantilla%20Campo%20Futbol%20Negro.jpg",
+        xref="x2",  # ejes x del segundo gráfico
+        yref="y2",  # ejes y del segundo gráfico
+        x=-5,        # coordenada x (ajústala según el gráfico)
+        y=125,        # coordenada y (ajústala según el gráfico)
+        sizex=90,    # tamaño horizontal de la imagen
+        sizey=130,    # tamaño vertical de la imagen
+        xanchor="left",
+        yanchor="top",
+        layer="below",  # poner detrás de las trazas
+        sizing="stretch"  # para que se adapte
+    )
+)
+    
+    dashboard.update_xaxes(range=[-5, 85], row=1, col=3)
+    dashboard.update_yaxes(range=[-5, 125], row=1, col=3)
+    
     dashboard.update_layout(
         template='simple_white',
         showlegend=True,
         paper_bgcolor='rgba(240, 248, 255, 0.6)',  # fondo pastel claro
         plot_bgcolor='rgba(255, 255, 255, 0.0)',
-        font=dict(family="Arial", color="black"),
+        font=dict(family="Lato"	, color="black"),
         title=dict(
             text=f"Informe de Rendimiento de {player}. Evolución de la temporada",
-            font=dict(size=24, color="crimson"),
+            font=dict(size=30, color="crimson", family="Montserrat, sans-serif"),
             x=0.5,
             xanchor='center'
         )
@@ -630,5 +598,5 @@ data = pd.read_csv("Data/shots.csv", sep=";", encoding = "UTF-8")
 data = data[data['player']=='Robert Lewandowski']
 #print(data.head())
 
-fig = individual_report(df=data, player= 'Robert Lewandowski', filtro_config=[{'type':('shot','==')}, {'type':('shot','=='), 'shot_outcome':('Blocked','==')}, {'type':('shot','=='), 'shot_outcome':('Goal','==')}, {'type':('shot','=='), 'shot_outcome':('Blocked','==')}, {'type':('shot','=='), 'shot_outcome':('Blocked','==')}] ,columna_evento=('type','Shot'),columna_color=None)
+fig = individual_report(df=data, player= 'Robert Lewandowski', filtro_config=[{'type':('Shot','==')}, {'type':('Shot','=='), 'shot_outcome':('Blocked','==')}, {'type':('Shot','=='), 'shot_outcome':('Goal','==')}, {'type':('Shot','=='), 'shot_outcome':('Blocked','==')}, {'type':('Shot','=='), 'shot_outcome':('Saved','==')}] ,columna_evento=('type','Shot'),columna_color='shot_outcome')
 fig.show()
