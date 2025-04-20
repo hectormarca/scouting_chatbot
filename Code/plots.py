@@ -591,12 +591,3 @@ def individual_report(df, player, filtro_config, columna_evento, columna_color):
     )
 
     return dashboard
-    return dashboard
-
-
-data = pd.read_csv("Data/shots.csv", sep=";", encoding = "UTF-8")
-data = data[data['player']=='Robert Lewandowski']
-#print(data.head())
-
-fig = individual_report(df=data, player= 'Robert Lewandowski', filtro_config=[{'type':('Shot','==')}, {'type':('Shot','=='), 'shot_outcome':('Blocked','==')}, {'type':('Shot','=='), 'shot_outcome':('Goal','==')}, {'type':('Shot','=='), 'shot_outcome':('Blocked','==')}, {'type':('Shot','=='), 'shot_outcome':('Saved','==')}] ,columna_evento=('type','Shot'),columna_color='shot_outcome')
-fig.show()
