@@ -1,6 +1,7 @@
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import plotly.express as px
 
 
 def boxplot(df, jugador, variable, jugador_col="player"):
@@ -397,9 +398,201 @@ def barchart_eventing(df, event,jornada_col='match_day', color='crimson'):
     return fig
 
 
+def draw_eventing_data(df, x_col='x', y_col='y', color_col=None):
+    """
+    Dibuja un campo de fútbol en orientación vertical y grafica eventos.
+
+    Args:
+        df (pd.DataFrame): DataFrame con los datos de eventos.
+        x_col (str): Nombre de la columna para coordenada X.
+        y_col (str): Nombre de la columna para coordenada Y.
+        color_col (str, optional): Nombre de la columna para usar como color. Default es None.
+
+    Returns:
+        go.Figure: Objeto Plotly con el campo y eventos.
+    """
+    # Crear la figura
+    fig = go.Figure()
+
+    # Dimensiones del campo
+    field_length = 120
+    field_width = 80
+
+    # Límites del campo (rectángulo exterior)
+    fig.add_shape(type="rect", x0=0, y0=0, x1=field_width, y1=field_length, line=dict(color="black"))
+
+    # Línea media
+    fig.add_shape(type="line", x0=0, y0=field_length/2, x1=field_width, y1=field_length/2, line=dict(color="black"))
+
+    # Círculo central
+    fig.add_shape(type="circle",
+                  x0=field_width/2 - 10, y0=field_length/2 - 10,
+                  x1=field_width/2 + 10, y1=field_length/2 + 10,
+                  line=dict(color="black"))
+
+    # Áreas (izquierda y derecha)
+    for y_start in [0, field_length - 18]:
+        fig.add_shape(type="rect",
+                      x0=18, y0=y_start,
+                      x1=field_width - 18, y1=y_start + 18,
+                      line=dict(color="black"))
+
+    # Arcos del área
+    fig.add_shape(type="path",
+                  path=f'M {field_width/2 - 7},{18} A 7,7 0 0,1 {field_width/2 + 7},{18}',
+                  line=dict(color="black"))
+    fig.add_shape(type="path",
+                  path=f'M {field_width/2 - 7},{field_length - 18} A 7,7 0 0,0 {field_width/2 + 7},{field_length - 18}',
+                  line=dict(color="black"))
+
+    # Graficar los eventos
+    if color_col:
+        # Si la variable es categórica
+        unique_categories = df[color_col].dropna().unique()
+        palette = px.colors.qualitative.Set2  # o Set1, Dark2, Plotly, etc.
+        color_map = {cat: palette[i % len(palette)] for i, cat in enumerate(unique_categories)}
+
+        for category in unique_categories:
+            sub_df = df[df[color_col] == category]
+            fig.add_trace(go.Scatter(
+                x=sub_df[y_col],
+                y=sub_df[x_col],
+                mode='markers',
+                marker=dict(color=color_map[category], size=8),
+                name=str(category)
+            ))
+    else:
+        fig.add_trace(go.Scatter(
+            x=df[y_col],
+            y=df[x_col],
+            mode='markers',
+            marker=dict(color='crimson', size=6),
+            name='Eventos'
+        ))
+
+    # Ajustar layout para orientación vertical
+    fig.update_layout(
+        yaxis=dict(scaleanchor="x", scaleratio=1, range=[0, field_length]),
+        xaxis=dict(range=[0, field_width]),
+        height=700,
+        width=500,
+        plot_bgcolor='white',
+        showlegend=True
+    )
+
+    return fig
+
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+
+
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+
+
+def individual_report(df, filtro_config, columna_evento, columna_color):
+    """
+    Genera un dashboard de eventos individuales.
+
+    Args:
+        df (pd.DataFrame): Eventing data completo
+        filtro_config (list[dict]): Lista de 5 diccionarios. Cada diccionario contiene:
+            {
+                'filtros': dict de filtros a aplicar (columna: (valor, operador))
+            }
+            operador puede ser: '==', '!=', '>', '>=', '<', '<='
+
+        columna_evento (tuple): Par (columna, valor) para filtrar eventos en draw_eventing_data
+        columna_color (str): Nombre de la columna para colorear draw_eventing_data
+
+    Returns:
+        go.Figure: Dashboard con 3 columnas:
+            - Indicador de total de eventos (col 1)
+            - Barchart por jornada (col 2)
+            - Campo con eventos (col 3)
+    """
+
+    if len(filtro_config) != 5:
+        raise ValueError("Se requieren exactamente 5 configuraciones de filtro.")
+
+    specs = [[{"type": "indicator"}, {"type": "xy"}, None] for _ in range(5)]
+    specs[-1][2] = {"type": "xy", "rowspan": 5}
+
+    dashboard = make_subplots(
+        rows=5, cols=3,
+        column_widths=[0.1, 0.4, 0.5],
+        row_heights=[0.2] * 5,
+        specs=specs,
+        horizontal_spacing=0.04,
+        vertical_spacing=0.06,
+    )
+
+    for i, config in enumerate(filtro_config):
+        filtros = config.get("filtros", {})
+
+        df_filtrado = df.copy()
+        for col, (val, op) in filtros.items():
+            if op == '==':
+                df_filtrado = df_filtrado[df_filtrado[col] == val]
+            elif op == '!=':
+                df_filtrado = df_filtrado[df_filtrado[col] != val]
+            elif op == '>':
+                df_filtrado = df_filtrado[df_filtrado[col] > val]
+            elif op == '>=':
+                df_filtrado = df_filtrado[df_filtrado[col] >= val]
+            elif op == '<':
+                df_filtrado = df_filtrado[df_filtrado[col] < val]
+            elif op == '<=':
+                df_filtrado = df_filtrado[df_filtrado[col] <= val]
+            else:
+                raise ValueError(f"Operador no soportado: {op}")
+
+        total_eventos = len(df_filtrado)
+        nombre_evento = " ".join([f"{k} {op} {v}" for k, (v, op) in filtros.items()])
+
+        # Indicador de cantidad total
+        indicador = go.Indicator(
+            mode="number",
+            value=total_eventos,
+            number={"font": {"size": 24, "color": "crimson"}},
+            title={"text": f"<span style='font-size:14px;color:gray'><b>{nombre_evento}</b></span>"},
+            domain={"x": [0, 1], "y": [0, 1]}
+        )
+        dashboard.add_trace(indicador, row=i + 1, col=1)
+
+        # Barchart
+        bar = barchart_eventing(df_filtrado, nombre_evento)
+        for trace in bar.data:
+            dashboard.add_trace(trace, row=i + 1, col=2)
+
+        if i == 4:
+            # Campo con eventos (último solo)
+            columna_evento_col, columna_evento_val = columna_evento
+            df_eventing = df[df[columna_evento_col] == columna_evento_val]
+            campo = draw_eventing_data(df_eventing, color_col=columna_color)
+            for trace in campo.data:
+                dashboard.add_trace(trace, row=1, col=3)
+
+    dashboard.update_layout(
+        template='simple_white',
+        height=1800,
+        showlegend=True,
+        plot_bgcolor='white',
+        title=dict(
+            text="Informe Individual de Eventos",
+            font=dict(size=24, color="crimson"),
+            x=0.5,
+            xanchor='center'
+        )
+    )
+
+    return dashboard
+    return dashboard
+
+
 data = pd.read_csv("Data/shots.csv", sep=";", encoding = "UTF-8")
 data = data[data['player']=='Robert Lewandowski']
-print(data.head())
+#print(data.head())
 
-fig = barchart_eventing(data, 'Shots')
+fig = individual_report(df=data, filtro_config=[{'type':('shot','==')}, {'type':('shot','=='), 'shot_outcome':('Blocked','==')}, {'type':('shot','=='), 'shot_outcome':('Goal','==')}, {'type':('shot','=='), 'shot_outcome':('Blocked','==')}, {'type':('shot','=='), 'shot_outcome':('Blocked','==')}] ,columna_evento=('type','Shot'),columna_color=None)
 fig.show()
