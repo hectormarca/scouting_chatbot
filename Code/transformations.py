@@ -10,8 +10,8 @@ def union_events(df_list):
 
     return result
 
-def filter_by_player(df, players, player_column='player'):
+def filter_by_player(df, player, player_column='player'):
 
-    df_filtered = df[df[player_column].isin(players)]
+    df_filtered = df[df[player_column]==player]
     return df_filtered
 
