@@ -274,7 +274,7 @@ def indicator_total(value):
     
     return fig
 
-def comparative_report(df, variables, player, jugador_col='player'):
+def comparative_report(df, variables, player, jugador_col='player', comp="mean"):
 
     if len(variables) !=4:
         raise ValueError(f"El nº de variables para mostrar en el informe es de 4")
@@ -342,12 +342,12 @@ def comparative_report(df, variables, player, jugador_col='player'):
     data_scaled[vars] = (data_scaled[vars] - min_vals) / (max_vals - min_vals)
 
     # Radar ofensivo en filas 1-2
-    fig_of = radar_chart(data_scaled, player, vars_ofensivas)
+    fig_of = radar_chart(data_scaled, player, vars_ofensivas, comparation=comp)
     for trace in fig_of.data:
         dashboard.add_trace(trace, row=1, col=3)
 
     # Radar defensivo en filas 3-4
-    fig_def = radar_chart(data_scaled, player, vars_defensivas)
+    fig_def = radar_chart(data_scaled, player, vars_defensivas, comparation=comp)
     for trace in fig_def.data:
         dashboard.add_trace(trace, row=3, col=3)
 
