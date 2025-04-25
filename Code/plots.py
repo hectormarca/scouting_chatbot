@@ -99,7 +99,51 @@ def radar_chart(df, player, variables, comparation = 'mean', jugador_col="player
     if player not in df[jugador_col].values:
         raise ValueError(f"El jugador '{player}' no está disponible.")
     
-    if comparation == 'mean':
+    if comparation == 'position':
+        
+        position = df[df[jugador_col] == player]['position'].values[0]
+        stats_jugador1 = df[df[jugador_col] == player][variables].values.flatten().tolist()
+        stats_jugador2 = df[df['position']==position][variables].mean().tolist()
+            # Cierre del radar chart (repetir el primer valor al final)
+        stats_jugador1 += [stats_jugador1[0]]
+        stats_jugador2 += [stats_jugador2[0]]
+        categorias = variables + [variables[0]]
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Scatterpolar(
+        r=stats_jugador1,
+        theta=categorias,
+        fill='toself',
+        line=dict(color='crimson'),
+        fillcolor='rgba(220, 20, 60, 0.4)',
+        name=player
+    ))
+
+        fig.add_trace(go.Scatterpolar(
+            r=stats_jugador2,
+            theta=categorias,
+            fill='toself',
+            line=dict(color='orange'),
+            fillcolor='rgba(255, 165, 0, 0.4)',
+            name=f'Promedio {position}'
+        ))
+
+        fig.update_layout(
+            polar=dict(
+                radialaxis=dict(
+                    visible=True,
+                    linewidth=1,
+                    gridcolor="lightgray",
+                    range=[0, 1]
+                )
+            ),
+            showlegend=False
+        )
+
+        return fig
+    
+    elif comparation == 'mean':
 
         stats_jugador1 = df[df[jugador_col] == player][variables].values.flatten().tolist()
         stats_jugador2 = df[variables].mean().tolist()
@@ -125,7 +169,7 @@ def radar_chart(df, player, variables, comparation = 'mean', jugador_col="player
             fill='toself',
             line=dict(color='orange'),
             fillcolor='rgba(255, 165, 0, 0.4)',
-            name='Promedio'
+            name='Promedio General'
         ))
 
         fig.update_layout(
@@ -141,6 +185,7 @@ def radar_chart(df, player, variables, comparation = 'mean', jugador_col="player
         )
 
         return fig
+
 
     elif comparation not in df[jugador_col].values:
 
@@ -201,10 +246,10 @@ def indicator(variable, value):
             value=value,  # tu percentil como valor
             number={
                 "suffix": "%",
-                "font": {"size": 28, "color": "crimson" ,"family":"Montserrat, sans-serif"}
+                "font": {"size": 20, "color": "crimson" ,"family":"Montserrat Bold, Montserrat, sans-serif"}
             },
             title={
-                "text": f"<span style='font-size:14px;color:gray'><b>Perc. {variable}</b></span>",
+                "text": f"<span style='font-size:11px;color:gray'><b>Perc. {variable}</b></span>",
             },
             domain={"x": [0, 1], "y": [0, 1]}
             
@@ -248,13 +293,13 @@ def comparative_report(df, variables, player, jugador_col='player'):
         column_widths=[0.05, 0.6, 0.35],
         row_heights=[0.25]*4,
         specs=specs,
-        horizontal_spacing=0.03,
+        horizontal_spacing=0.08,
         vertical_spacing=0.08,
         subplot_titles=["", "", "<b style='color:crimson'>Comparación Rendimiento Ofensivo</b>",
                         "", "",
                         "", "","<b style='color:crimson'>Comparación Rendimiento Creación</b>",
                         "", ""],
-        column_titles = ["",f"<b style='color:crimson'>Situación de {player} respecto del resto de jugadores</b>",""]
+        column_titles = ["",f"<b style='color:crimson'>Situación respecto del resto de jugadores</b>",""]
     ) 
 
     for num, var in enumerate(variables):
@@ -309,13 +354,14 @@ def comparative_report(df, variables, player, jugador_col='player'):
     
     dashboard.update_layout(
         template='simple_white',
+        width=1000, height=800,
         showlegend=False,
         paper_bgcolor='rgba(240, 248, 255, 0.6)',  # fondo pastel claro
         plot_bgcolor='rgba(255, 255, 255, 0.0)',
         font=dict(family="Montserrat, sans-serif", color="black"),
         title=dict(
-            text=f"Informe de Rendimiento de {player}. Comparación con el resto de jugadores",
-            font=dict(size=24, color="crimson", family="Montserrat, sans-serif"),
+            text=f"Informe de Rendimiento de {player}.<br>Comparación con el resto de jugadores",
+            font=dict(size=18, color="crimson", family="Montserrat, sans-serif"),
             x=0.5,
             xanchor='center'
         ),

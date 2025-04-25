@@ -78,7 +78,7 @@ chat = gr.ChatInterface(
     fn=responder,
     title="Asistente de Fútbol ⚽",
     description="Pide informes sobre el rendimiento de un jugador en la temporada 2015/2016. Todos los datos son extraídos de StatsBomb"
-).launch(debug=True)
+).launch(debug=True, share=True)
 
 
 
