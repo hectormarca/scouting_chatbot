@@ -137,7 +137,7 @@ def radar_chart(df, player, variables, comparation = 'mean', jugador_col="player
                     range=[0, 1]
                 )
             ),
-            #showlegend=True
+            showlegend=False
         )
 
         return fig
@@ -309,7 +309,7 @@ def comparative_report(df, variables, player, jugador_col='player'):
     
     dashboard.update_layout(
         template='simple_white',
-        #showlegend=True,
+        showlegend=False,
         paper_bgcolor='rgba(240, 248, 255, 0.6)',  # fondo pastel claro
         plot_bgcolor='rgba(255, 255, 255, 0.0)',
         font=dict(family="Montserrat, sans-serif", color="black"),
