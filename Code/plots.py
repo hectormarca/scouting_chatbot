@@ -137,7 +137,7 @@ def radar_chart(df, player, variables, comparation = 'mean', jugador_col="player
                     range=[0, 1]
                 )
             ),
-            showlegend=True
+            #showlegend=True
         )
 
         return fig
