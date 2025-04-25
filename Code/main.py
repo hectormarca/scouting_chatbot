@@ -27,8 +27,8 @@ client = OpenAI(api_key="sk-6528ca292910466e95b9e352d21fe79a", base_url="https:/
 
 
 # Cargar datos
-agg_data = pd.read_parquet('/workspaces/scouting_chatbot/Data/aggregated_data.parquet')
-
+agg_data = pd.read_parquet('/workspaces/scouting_chatbot/Data/aggregated_data.parquet', engine = 'pyarrow')
+print(agg_data[agg_data['player'].isin(['Robert Lewandowski', 'Cristiano Ronaldo dos Santos Aveiro'])].transpose())
 # Función de NLP para interpretar la pregunta
 def interpretar_pregunta(pregunta):
     prompt = f"""
@@ -78,7 +78,7 @@ chat = gr.ChatInterface(
     fn=responder,
     title="Asistente de Fútbol ⚽",
     description="Pide informes sobre el rendimiento de un jugador en la temporada 2015/2016. Todos los datos son extraídos de StatsBomb"
-).launch(debug=True, share=True)
+).launch(debug=True)
 
 
 

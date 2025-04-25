@@ -348,8 +348,7 @@ def comparative_report(df, variables, player, jugador_col='player'):
             angularaxis=dict(
                 tickfont=dict(size=10)
             )
-        ),
-       width=600, height=400, margin=dict(l=10, r=10, t=30, b=30)
+        )
     )
 
     return dashboard
