@@ -28,7 +28,7 @@ client = OpenAI(api_key="sk-6528ca292910466e95b9e352d21fe79a", base_url="https:/
 
 # Cargar datos
 agg_data = pd.read_parquet('/workspaces/scouting_chatbot/Data/aggregated_data.parquet', engine = 'pyarrow')
-print(agg_data[agg_data['player'].isin(['Robert Lewandowski', 'Cristiano Ronaldo dos Santos Aveiro'])].transpose())
+
 # Función de NLP para interpretar la pregunta
 def interpretar_pregunta(pregunta):
     prompt = f"""

@@ -309,7 +309,7 @@ def comparative_report(df, variables, player, jugador_col='player'):
     
     dashboard.update_layout(
         template='simple_white',
-        showlegend=True,
+        #showlegend=True,
         paper_bgcolor='rgba(240, 248, 255, 0.6)',  # fondo pastel claro
         plot_bgcolor='rgba(255, 255, 255, 0.0)',
         font=dict(family="Montserrat, sans-serif", color="black"),
