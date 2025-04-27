@@ -2,33 +2,22 @@ import plots
 import transformations as transf
 import pandas as pd
 import gradio as gr
-import plotly.express as px
 from openai import OpenAI
 import os
-from openai import AsyncOpenAI
-import json
-import re
+from dotenv import load_dotenv
 
-def extraer_json_de_respuesta(respuesta):
-    # Buscar cualquier contenido entre llaves {...}
-    match = re.search(r'\{.*\}', respuesta, re.DOTALL)
-    if match:
-        json_text = match.group()
-        try:
-            return json.loads(json_text)
-        except json.JSONDecodeError:
-            return None
-    return None
+# Cargar variables de entorno
+load_dotenv()
 
+# Obtener el token de la API de DeepSeek
+api_token = os.getenv('API_TOKEN')
 
 # Configurar tu API key de OpenAI (puede estar en una variable de entorno)
-client = OpenAI(api_key="sk-6528ca292910466e95b9e352d21fe79a", base_url="https://api.deepseek.com")
-#os.getenv("OPENAI_API_KEY") or
-
+client = OpenAI(api_key=api_token, base_url="https://api.deepseek.com")
 
 # Cargar datos
 agg_data = pd.read_parquet('/workspaces/scouting_chatbot/Data/aggregated_data.parquet', engine = 'pyarrow')
-event_data = pd.read_parquet('/workspaces/scouting_chatbot/Data/aggregated_data.parquet', engine = 'pyarrow')
+event_data = pd.read_parquet('/workspaces/scouting_chatbot/Data/eventing_data.parquet', engine = 'pyarrow')
 
 # Función de NLP para interpretar la pregunta
 def interpretar_pregunta(pregunta, historial):
@@ -136,7 +125,7 @@ Output example:
     stream=False)
 
     try:
-        return extraer_json_de_respuesta(response.choices[0].message.content)
+        return transf.extraer_json_de_respuesta(response.choices[0].message.content)
     except:
         return None
 

@@ -1,5 +1,7 @@
 import pandas as pd
 from difflib import get_close_matches
+import json
+import re
 
 def union_events(df_list):
 
@@ -33,3 +35,14 @@ def buscar_similares(df, columna, valor, n=10, umbral=0.5):
     elementos = df[columna].dropna().astype(str).unique()
     similares = get_close_matches(valor, elementos, n=n, cutoff=umbral)
     return similares
+
+def extraer_json_de_respuesta(respuesta):
+    # Buscar cualquier contenido entre llaves {...}
+    match = re.search(r'\{.*\}', respuesta, re.DOTALL)
+    if match:
+        json_text = match.group()
+        try:
+            return json.loads(json_text)
+        except json.JSONDecodeError:
+            return None
+    return None
