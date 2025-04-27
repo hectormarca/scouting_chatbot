@@ -4,7 +4,8 @@ env/
 
 # Ignorar archivos de configuración sensibles
 .env
-.gradio
+.gradio/
+.gitattributes
 
 # Ignorar cachés de Python
 __pycache__/
