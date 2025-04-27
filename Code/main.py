@@ -158,25 +158,22 @@ def responder(pregunta, history):
       
       elif info["report_type"]=="individual":
 
-        return gr.Text(f"Este tipo de informe todavía no está disponible")
+        return f"Este tipo de informe todavía no está disponible"
       
       return  gr.Plot(fig)
     
     else:
         
         similares_names = transf.buscar_similares(agg_data, 'player', jugadores)
-        similares_table = agg_data[agg_data['player'].isin(similares_names)][['player','position','minutes']]
-        return None, [
-        gr.Textbox(value="Lo siento, no encuentro al jugador que me has pedido. He encontrado los siguientes nombres similares:", label="Mensaje"),
-        gr.Dataframe(value=similares_table, label="Estadísticas")
-    ]
+        similares_table = agg_data[agg_data['player'].isin(similares_names)][['player','position']]
+        return f"Lo siento, no encuentro al jugador que me has pedido. He encontrado los siguientes nombres similares:\n {similares_table.to_string(index=False, header=False)}"
 
 # Lanzar la app
 chat = gr.ChatInterface(
     fn=responder,
     title="Asistente de Fútbol ⚽",
     description="Pide informes sobre el rendimiento de un jugador en la temporada 2015/2016. Todos los datos son extraídos de StatsBomb"
-).launch(debug=True, share=True)
+).launch(debug=True)
 
 
 
