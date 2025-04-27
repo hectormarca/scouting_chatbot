@@ -565,8 +565,8 @@ def individual_report(df, player, filtro_config, columna_evento, columna_color):
         column_widths=[0.05, 0.45, 0.5],
         row_heights=[0.2] * 5,
         specs=specs,
-        horizontal_spacing=0.04,
-        vertical_spacing=0.06,
+        horizontal_spacing=0.08,
+        vertical_spacing=0.08,
         column_titles = ["", "", f"<b style='color:crimson; font-size:19px'>Distribución de {columna_evento[1]} de la temporada</b>"],
         subplot_titles = ["", titulos[0], "",
                           "", titulos[1],
@@ -583,6 +583,17 @@ def individual_report(df, player, filtro_config, columna_evento, columna_color):
         total_eventos = len(df_filtrado)
 
         nombre_evento = " ".join([f"{v}" for k, (v, op) in config.items()])
+
+        for k, (v, op) in config.items():
+
+            if k.startswith('dribble'):
+                nombre_evento = 'Dribble - ' + v
+            elif k.startswith('pass'):
+                nombre_evento = 'Pass - ' + v
+            elif k.startswith('shot'):
+                nombre_evento = 'Shot - ' + v
+            else:
+                nombre_evento=v
 
         dashboard.add_trace(indicator_total(total_eventos), row=i + 1, col=1)
 
@@ -622,15 +633,21 @@ def individual_report(df, player, filtro_config, columna_evento, columna_color):
     dashboard.update_xaxes(range=[-5, 85], row=1, col=3)
     dashboard.update_yaxes(range=[-5, 125], row=1, col=3)
     
+    if columna_color:
+        leyenda = True
+    else:
+        leyenda = False
+
     dashboard.update_layout(
         template='simple_white',
-        showlegend=True,
+        width=1000, height=800,
+        showlegend=leyenda,
         paper_bgcolor='rgba(240, 248, 255, 0.6)',  # fondo pastel claro
         plot_bgcolor='rgba(255, 255, 255, 0.0)',
         font=dict(family="Lato"	, color="black"),
         title=dict(
             text=f"Informe de Rendimiento de {player}. Evolución de la temporada",
-            font=dict(size=30, color="crimson", family="Montserrat, sans-serif"),
+           font=dict(size=18, color="crimson", family="Montserrat, sans-serif"),
             x=0.5,
             xanchor='center'
         )

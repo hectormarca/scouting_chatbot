@@ -5,13 +5,13 @@ import gradio as gr
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+import ast
 
-# Cargar variables de entorno
+
+# Cargar variables de entorno (para poder acceder al token de la API)
 load_dotenv()
-
 # Obtener el token de la API de DeepSeek
 api_token = os.getenv('API_TOKEN')
-
 # Configurar tu API key de OpenAI (puede estar en una variable de entorno)
 client = OpenAI(api_key=api_token, base_url="https://api.deepseek.com")
 
@@ -20,6 +20,7 @@ agg_data = pd.read_parquet('/workspaces/scouting_chatbot/Data/aggregated_data.pa
 event_data = pd.read_parquet('/workspaces/scouting_chatbot/Data/eventing_data.parquet', engine = 'pyarrow')
 
 # Función de NLP para interpretar la pregunta
+#Configuramos para que la respuesta sea un JSON con la metadata para realizar los informes
 def interpretar_pregunta(pregunta, historial):
     prompt = f"""
 Dispones en las variables agg_data y event_data de los siguientes conjuntos de datos con información sobre futbolistas:
@@ -104,14 +105,17 @@ Devuelve en formato JSON la siguiente información
 - "variables": variables a mostrar en el informe si es de tipo "comparative". Si no este elemento puede ir vacío. Tiene que se una lista de 4 columnas presentes en ['Pases', 'Shot_Assist','Assist','Centros_Area','Porc_Pase','Regates_Int','Regates_Comp','Recuperaciones','Despejes','Perdidas','Errores','Tiros','xG_per_90','Goles'].
 Si el usuario no especifica nada, tomará el valor ["Goles","Assist","Regates_Comp","Recuperaciones"]
 - "comparation": con quien se va a comparar el jugador. Puede tomar los valores "mean", "position" si se quiere comparar con los jugadores de su misma posición o cualquier valor de {agg_data['player'].unique().tolist()} si se quiere comparar con un jugador en concreto
-- "filter_config": Elemento con las columnas que se mostrarán en el informe "individual". Debe tener el siguiente formato nombre_columna_de_event_data: [valor_para_filtrar, operador]. El operador puede coger los valores '==', '>=', '<=', '>' o '<'. Si el report es de tipo "comparative" este elemento puede ir vacío
-- "event_plot_column": lista donde el primer elemento es una columna de event_data y el segundo elemento el valor a utilizar de esa columna. Por defecto ["type", "shot"]
-- "event_color_column": nombre de columna que se va a utilizar para colorear un gráfico. Por defecto None
+- "filter_config": Te pido que devuelvas 5 objetos de tipo diccionario con exactamente 1 par clave/valor. Cada par clave/valor debe seguir estas reglas:
+La clave debe ser un nombre de columna de event_data (es decir, uno de los valores listados en {event_data.columns.tolist()}).
+El valor de cada clave será una lista con dos elementos: El valor para filtrar (Este valor debe ser uno de los valores presentes en la columna seleccionada.) y el operador de comparación (que debe ser uno de los siguientes: '==', '>=', '<=', '>', o '<').
+La lista debe tener siempre 5 diccionarios. Si no se especifica nada, la respuesta debe tomar el siguiente valor predeterminado: [{{"type": ["Shot", '==']}}, {{"type": ["Pass", '==']}}, {{"type": ["Dribble", '==']}}, {{"type": ["Ball Recovery", '==']}}, {{"type": ["Clearance", '==']}}]
+- "event_plot_column": lista donde el primer elemento es una columna de event_data ({event_data.columns.tolist()}) y el segundo elemento el valor a utilizar de esa columna. Por defecto ["type", "Shot"]
+- "event_color_column": nombre de columna de event data ({event_data.columns.tolist()}) que se va a utilizar para colorear un gráfico. Por defecto None
 
 Teniendo en cuenta que anteriormente ya te han preguntado lo siguiente {historial}.
 
 Output example:
-{{"report_type": "comparative", "player_position": "FW", "player_name": "Lionel Andrés Messi Cuccittini", "variables": ["Goles","Assist","Regates_Comp","Recuperaciones"], "comparation":"mean", "filter_config": {{"match_id": [12345, '=='], "team_name": ["FC Ejemplo", '>=']}}, "event_plot_column": "minute", "event_color_column": None}}
+{{"report_type": "comparative", "player_position": "FW", "player_name": "Lionel Andrés Messi Cuccittini", "variables": ["Goles","Assist","Regates_Comp","Recuperaciones"], "comparation":"mean", "filter_config": {{"type": ["Shot", '=='],"type": ["Pass", '=='], "type": ["Dribble", '=='], "type": ["Ball Recovery", '=='], "type": ["Clearance", '==']}}, "event_plot_column": "minute", "event_color_column": None}}
 """
 
 
@@ -119,7 +123,7 @@ Output example:
     response = client.chat.completions.create(
     model="deepseek-chat",
     messages=[
-        {"role": "system", "content": "You are a football scouting"},
+        {"role": "system", "content": "Eres un scout/analista de fútbol cuya principal misión es diseñar informes de jugadores a partir de sus datos y estadísticas de los partidos"},
         {"role": "user", "content": prompt},
     ],
     stream=False)
@@ -130,6 +134,7 @@ Output example:
         return None
 
 # Función principal del asistente
+#A partir del JSON de metadatos que devuelve la llamada a la API de Deepseek generamos el informe que ha pedido el usuario
 def responder(pregunta, history):
     
     texto = ''
@@ -140,40 +145,52 @@ def responder(pregunta, history):
         for i in range(1, ultimas+1):
           texto += f"La respuesta anterior {i} del bot fue: '{history[-i][0]}'"
 
-
+    #Generamos el JSON de metadatos
     info = interpretar_pregunta(pregunta, texto)
 
     if info is None:
-        return "No pude interpretar bien tu pregunta. ¿Puedes reformularla?", None
+        return "No pude interpretar bien tu pregunta. ¿Puedes reformularla?"
 
-    print(info)
-
+    #Guardamos el jugador sobre el que se ha pedido el informe
     jugadores = info["player_name"]
 
+    #Si el jugador está disponible en los datos
     if jugadores in agg_data.player.tolist():
 
+      #Elaboramos el informe, ya sea individual o comparativo
       if info["report_type"]=="comparative":
 
         fig = plots.comparative_report(agg_data, info["variables"] , jugadores, comp = info['comparation'])
       
       elif info["report_type"]=="individual":
 
-        return f"Este tipo de informe todavía no está disponible"
+        event_data_filtered = event_data[event_data['player'] == jugadores]
+        fig = plots.individual_report(event_data_filtered, jugadores, info['filter_config'], info['event_plot_column'], info['event_color_column'])
+
+      else:
+         
+         return f'El tipo de informe {info["report_type"]} no está disponible todavía. Puedes pedir informes individuales o comparativos'
       
       return  gr.Plot(fig)
     
+    #Si no encontramos el jugador, mostramos posibles coincidencias de jugadores con nombres parecidos
     else:
         
         similares_names = transf.buscar_similares(agg_data, 'player', jugadores)
         similares_table = agg_data[agg_data['player'].isin(similares_names)][['player','position']]
         return f"Lo siento, no encuentro al jugador que me has pedido. He encontrado los siguientes nombres similares:\n {similares_table.to_string(index=False, header=False)}"
 
+
+
 # Lanzar la app
 chat = gr.ChatInterface(
     fn=responder,
-    title="Asistente de Fútbol ⚽",
-    description="Pide informes sobre el rendimiento de un jugador en la temporada 2015/2016. Todos los datos son extraídos de StatsBomb"
-).launch(debug=True)
+    title="Asistente de Scouting. Informes comparativos e individuales de jugadores de las 5 grandes ligas",
+    description="Asistente para diseñar informes sobre el rendimiento de un jugador en la temporada 2015/2016. Todos los datos son extraídos de StatsBomb." \
+    "Actualmente, están disponibles informes comparativos (se muestra a un jugador elegido respecto al resto) o individuales (progreso del jugador elegido a lo largo de la temporada)." \
+    "El asistente es capaz de modificar los informes para mostrar las variables requeridas por el usuario. Para los informes individuales, se muestran siempre 4 variables entre: Pases, Shot_Assist, Assist, Centros_Area, Porc_Pase, Regates_Int, Regates_Comp, Recuperaciones, Despejes, Perdidas, Errores, Tiros, xG_per_90, Goles. " \
+    "También permite cambiar contra quién se compara el jugador en los gráficos de radar, si contra la media de todos los jugadores, contra la media de los jugadores de su posición o contra un jugador en concreto."
+).launch(debug=True, share=True)
 
 
 
