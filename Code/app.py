@@ -5,7 +5,7 @@ import gradio as gr
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
-import ast
+
 
 
 # Cargar variables de entorno (para poder acceder al token de la API)
@@ -190,7 +190,7 @@ chat = gr.ChatInterface(
     "Actualmente, están disponibles informes comparativos (se muestra a un jugador elegido respecto al resto) o individuales (progreso del jugador elegido a lo largo de la temporada)." \
     "El asistente es capaz de modificar los informes para mostrar las variables requeridas por el usuario. Para los informes individuales, se muestran siempre 4 variables entre: Pases, Shot_Assist, Assist, Centros_Area, Porc_Pase, Regates_Int, Regates_Comp, Recuperaciones, Despejes, Perdidas, Errores, Tiros, xG_per_90, Goles. " \
     "También permite cambiar contra quién se compara el jugador en los gráficos de radar, si contra la media de todos los jugadores, contra la media de los jugadores de su posición o contra un jugador en concreto."
-).launch(debug=True, share=True)
+).launch(debug=True)
 
 
 

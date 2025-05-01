@@ -4,7 +4,7 @@ from plotly.subplots import make_subplots
 import plotly.express as px
 
 
-def boxplot(df, jugador, variable, jugador_col="player"):
+def boxplot(df, jugador, variable, jugador_col="player", comparation = 'mean'):
     
     """
     Muestra un BoxPlot con todos los jugadores, destacando el jugador que se quiere analizar. A la derecha del BoxPlot se muestra el percentil del jugador
@@ -75,6 +75,65 @@ def boxplot(df, jugador, variable, jugador_col="player"):
         hovertemplate="Jugador: %{customdata[0]}<br>" + f"{variable}: " + "%{x:.2f}<extra></extra>",
         showlegend=False
     ))
+
+    #Añadir comparación
+
+    if comparation == 'mean':
+
+        comp_df = df[f'{variable}'].mean()
+        fig.add_trace(go.Scatter(
+        x=[comp_df],
+        y=[0],
+        mode='markers',
+        marker=dict(
+            color='orange',
+            size=8,
+            line=dict(color='black', width=1)
+        ),
+        hovertemplate="Total Average<br>" + f"{variable}: " + "%{x:.2f}<extra></extra>",
+        showlegend=False
+    ))
+        
+    elif comparation == 'position':
+
+        pos = df[df['player']==jugador]['position'].values[0]
+        mean = df[df['position']==pos][f'{variable}'].mean()
+        fig.add_trace(go.Scatter(
+        x=[mean],
+        y=[0],
+        mode='markers',
+        marker=dict(
+            color='orange',
+            size=8,
+            line=dict(color='black', width=1)
+        ),
+        hovertemplate=f"{pos} Average<br>" + f"{variable}: " + "%{x:.2f}<extra></extra>",
+        showlegend=False
+    ))
+        
+    else:
+
+        try:
+            
+            highlighted_comp = df[df['player'] == comparation]
+            fig.add_trace(go.Scatter(
+                x=highlighted_comp[variable],
+                y=[0],
+                mode='markers',
+                marker=dict(
+                    color='orange',
+                    size=8,
+                    line=dict(color='black', width=1)
+                ),
+                customdata=highlighted_comp[['player']],
+                hovertemplate="Jugador: %{customdata[0]}<br>" + f"{variable}: " + "%{x:.2f}<extra></extra>",
+                showlegend=False
+            ))
+
+        except:
+            pass
+
+
     
     fig.update_layout(
     yaxis=dict(visible=False)  # en vez de múltiples flags
@@ -305,7 +364,7 @@ def comparative_report(df, variables, player, jugador_col='player', comp="mean")
     for num, var in enumerate(variables):
 
         #Añadir los boxplots
-        fig = boxplot(df, player, var)
+        fig = boxplot(df, player, var, comparation=comp)
         for trace in fig.data:
             dashboard.add_trace(trace, row = num+1, col=2)
         
